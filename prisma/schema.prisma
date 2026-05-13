@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PARSING
+  INDEXING
+  READY
+  FAILED
+}
+
+enum QueryStatus {
+  QUEUED
+  RETRIEVING
+  GENERATING
+  ANSWERED
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  documents     Document[]
+  conversations Conversation[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Document {
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  filename     String
+  mimeType     String         @map("mime_type")
+  checksum     String         @unique
+  sizeBytes    Int            @map("size_bytes")
+  status       DocumentStatus @default(UPLOADED)
+  pageCount    Int?           @map("page_count")
+  sourcePath   String         @map("source_path")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  processedAt  DateTime?      @map("processed_at")
+  errorMessage String?        @map("error_message")
+
+  user         User           @relation(fields: [userId], references: [id])
+  chunks       DocumentChunk[]
+  citations    Citation[]
+  ingestionJob IngestionJob?
+
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id              String                       @id @default(uuid())
+  documentId      String                       @map("document_id")
+  pageNumber      Int                          @map("page_number")
+  chunkIndex      Int                          @map("chunk_index")
+  content         String
+  embeddingVector Unsupported("vector(1536)")?  @map("embedding_vector")
+  tokenCount      Int                          @map("token_count")
+  startOffset     Int                          @map("start_offset")
+  endOffset       Int                          @map("end_offset")
+
+  document  Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  citations Citation[]
+
+  @@map("document_chunks")
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  title     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id])
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String      @id @default(uuid())
+  conversationId String      @map("conversation_id")
+  role           MessageRole
+  content        String
+  model          String?
+  latencyMs      Int?        @map("latency_ms")
+  queryStatus    QueryStatus @default(ANSWERED) @map("query_status")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  citations    Citation[]
+
+  @@map("messages")
+}
+
+model Citation {
+  id             String   @id @default(uuid())
+  messageId      String   @map("message_id")
+  documentId     String   @map("document_id")
+  chunkId        String   @map("chunk_id")
+  pageNumber     Int      @map("page_number")
+  paragraphRef   String?  @map("paragraph_ref")
+  similarityScore Float   @map("similarity_score")
+
+  message  Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document Document      @relation(fields: [documentId], references: [id])
+  chunk    DocumentChunk @relation(fields: [chunkId], references: [id])
+
+  @@map("citations")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  action       String
+  entityType   String   @map("entity_type")
+  entityId     String?  @map("entity_id")
+  ip           String?
+  userAgent    String?  @map("user_agent")
+  metadataJson Json?    @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model IngestionJob {
+  id           String    @id @default(uuid())
+  documentId   String    @unique @map("document_id")
+  status       JobStatus @default(PENDING)
+  retries      Int       @default(0)
+  lockedAt     DateTime? @map("locked_at")
+  startedAt    DateTime? @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
+  errorMessage String?   @map("error_message")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("ingestion_jobs")
+}
