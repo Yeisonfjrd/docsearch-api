@@ -5,7 +5,7 @@ import type {
   ICitationRepository,
   IAuditRepository,
 } from "../../domain/repositories.js";
-import { generateEmbedding, generateAnswer } from "../../infrastructure/ai/openai.js";
+import { generateEmbedding, generateAnswer } from "../../infrastructure/ai/factory.js";
 import { getConfig } from "../../infrastructure/config.js";
 
 export interface AnswerQuestionInput {

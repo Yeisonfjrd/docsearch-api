@@ -1,7 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { getPrismaClient } from "../../infrastructure/database/prisma.js";
+import {
+  hashPassword,
+  isLegacyPasswordHash,
+  verifyPassword,
+} from "../../infrastructure/auth/password.js";
 import { RegisterBody, LoginBody } from "../schemas/index.js";
 
 export async function authRoutes(app: FastifyInstance) {
@@ -16,7 +20,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(409).send({ error: "El email ya está registrado" });
     }
 
-    const passwordHash = createHash("sha256").update(body.password).digest("hex");
+    const passwordHash = await hashPassword(body.password);
 
     const user = await prisma.user.create({
       data: {
@@ -41,9 +45,16 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(401).send({ error: "Credenciales inválidas" });
     }
 
-    const passwordHash = createHash("sha256").update(body.password).digest("hex");
-    if (user.passwordHash !== passwordHash) {
+    const passwordMatches = await verifyPassword(body.password, user.passwordHash);
+    if (!passwordMatches) {
       return reply.code(401).send({ error: "Credenciales inválidas" });
+    }
+
+    if (isLegacyPasswordHash(user.passwordHash)) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: await hashPassword(body.password) },
+      });
     }
 
     const token = app.jwt.sign({ sub: user.id, role: user.role });

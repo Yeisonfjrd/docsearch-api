@@ -5,7 +5,7 @@ import type {
   IAuditRepository,
 } from "../../domain/repositories.js";
 import { parseDocument, chunkPages } from "../../infrastructure/parsers/document-parser.js";
-import { generateEmbeddings } from "../../infrastructure/ai/openai.js";
+import { generateEmbeddings } from "../../infrastructure/ai/factory.js";
 
 export interface ProcessDocumentInput {
   documentId: string;
