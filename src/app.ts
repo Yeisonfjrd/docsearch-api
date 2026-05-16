@@ -5,13 +5,16 @@ import fastifyHelmet from "@fastify/helmet";
 import fastifyMultipart from "@fastify/multipart";
 
 import { getConfig } from "./infrastructure/config.js";
+import { createContainer } from "./infrastructure/container.js";
 import { registerAuthMiddleware } from "./interface/middleware/auth.js";
 import { authRoutes } from "./interface/routes/auth.js";
 import { documentRoutes } from "./interface/routes/documents.js";
 import { conversationRoutes } from "./interface/routes/conversations.js";
+import { statusRoutes } from "./interface/routes/status.js";
 
 export async function buildApp() {
   const config = getConfig();
+  const container = createContainer(config);
 
   const app = Fastify({
     logger: {
@@ -24,7 +27,6 @@ export async function buildApp() {
     genReqId: () => crypto.randomUUID(),
   });
 
-  // ── Plugins ────────────────────────────────────────────────────────────────
   await app.register(fastifyHelmet);
   await app.register(fastifyCors, { origin: config.NODE_ENV === "development" });
   await app.register(fastifyJwt, {
@@ -33,22 +35,19 @@ export async function buildApp() {
   });
   await app.register(fastifyMultipart);
 
-  // ── Auth middleware ────────────────────────────────────────────────────────
   await registerAuthMiddleware(app);
 
-  // ── Routes ─────────────────────────────────────────────────────────────────
   await app.register(authRoutes);
-  await app.register(documentRoutes);
-  await app.register(conversationRoutes);
+  await app.register(documentRoutes, { container });
+  await app.register(conversationRoutes, { container });
+  await app.register(statusRoutes, { container });
 
-  // ── Health ─────────────────────────────────────────────────────────────────
   app.get("/health", async () => ({
     status: "ok",
     timestamp: new Date().toISOString(),
     env: config.NODE_ENV,
   }));
 
-  // ── Global error handler ───────────────────────────────────────────────────
   app.setErrorHandler((err, req, reply) => {
     const statusCode = err.statusCode ?? 500;
 

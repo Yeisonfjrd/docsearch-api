@@ -5,13 +5,12 @@ import type {
   IAuditRepository,
 } from "../../domain/repositories.js";
 import { parseDocument, chunkPages } from "../../infrastructure/parsers/document-parser.js";
-import { generateEmbeddings } from "../../infrastructure/ai/factory.js";
+import type { AiProvider } from "../../infrastructure/ai/factory.js";
 
 export interface ProcessDocumentInput {
   documentId: string;
 }
 
-// Batch size for embedding API calls
 const EMBED_BATCH_SIZE = 20;
 
 export class ProcessDocumentUseCase {
@@ -19,7 +18,8 @@ export class ProcessDocumentUseCase {
     private readonly documents: IDocumentRepository,
     private readonly chunks: IChunkRepository,
     private readonly jobs: IIngestionJobRepository,
-    private readonly audit: IAuditRepository
+    private readonly audit: IAuditRepository,
+    private readonly aiProvider: Pick<AiProvider, "generateEmbeddings">
   ) {}
 
   async execute({ documentId }: ProcessDocumentInput): Promise<void> {
@@ -30,31 +30,25 @@ export class ProcessDocumentUseCase {
     if (!job) throw new Error(`Job de ingesta no encontrado para: ${documentId}`);
 
     try {
-      // ── 1. Mark as PARSING ──────────────────────────────────────────────
       await this.documents.updateStatus(documentId, "PARSING");
       await this.jobs.updateStatus(job.id, "RUNNING", { startedAt: new Date() });
 
-      // ── 2. Parse document ───────────────────────────────────────────────
       const parsed = await parseDocument(document.sourcePath, document.mimeType);
 
       await this.documents.updateStatus(documentId, "INDEXING", {
         pageCount: parsed.pageCount,
       });
 
-      // ── 3. Chunk ────────────────────────────────────────────────────────
       const rawChunks = chunkPages(documentId, parsed.pages);
 
       if (rawChunks.length === 0) {
         throw new Error("El documento no produjo chunks (¿está vacío o corrupto?)");
       }
 
-      // ── 4. Embed in batches ─────────────────────────────────────────────
       const chunksWithEmbeddings = await this.embedInBatches(rawChunks);
 
-      // ── 5. Persist ──────────────────────────────────────────────────────
-      await this.chunks.createMany(chunksWithEmbeddings);
+      await this.chunks.replaceByDocumentId(documentId, chunksWithEmbeddings);
 
-      // ── 6. Mark READY ───────────────────────────────────────────────────
       await this.documents.updateStatus(documentId, "READY", {
         processedAt: new Date(),
         pageCount: parsed.pageCount,
@@ -99,7 +93,7 @@ export class ProcessDocumentUseCase {
     for (let i = 0; i < chunks.length; i += EMBED_BATCH_SIZE) {
       const batch = chunks.slice(i, i + EMBED_BATCH_SIZE);
       const texts = batch.map((c) => c.content);
-      const embeddings = await generateEmbeddings(texts);
+      const embeddings = await this.aiProvider.generateEmbeddings(texts);
 
       for (let j = 0; j < batch.length; j++) {
         result.push({ ...batch[j], embeddingVector: embeddings[j] });

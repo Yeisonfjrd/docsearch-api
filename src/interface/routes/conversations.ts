@@ -1,23 +1,16 @@
 import type { FastifyInstance } from "fastify";
-import { AnswerQuestionUseCase } from "../../application/use-cases/answer-question.js";
 import { AskBody, ConversationParams } from "../schemas/index.js";
-import { PrismaChunkRepository } from "../../infrastructure/database/repositories/chunk.js";
-import { PrismaConversationRepository } from "../../infrastructure/database/repositories/conversation.js";
-import { PrismaMessageRepository } from "../../infrastructure/database/repositories/message.js";
-import { PrismaCitationRepository } from "../../infrastructure/database/repositories/citation.js";
-import { PrismaAuditRepository } from "../../infrastructure/database/repositories/audit.js";
-import { getPrismaClient } from "../../infrastructure/database/prisma.js";
+import type { AppContainer } from "../../infrastructure/container.js";
 
-export async function conversationRoutes(app: FastifyInstance) {
-  const prisma = getPrismaClient();
+interface RouteOptions {
+  container: AppContainer;
+}
 
-  const answerUseCase = new AnswerQuestionUseCase(
-    new PrismaChunkRepository(prisma),
-    new PrismaConversationRepository(prisma),
-    new PrismaMessageRepository(prisma),
-    new PrismaCitationRepository(prisma),
-    new PrismaAuditRepository(prisma)
-  );
+export async function conversationRoutes(app: FastifyInstance, options: RouteOptions) {
+  const { repositories, useCases } = options.container;
+  const answerUseCase = useCases.answerQuestion;
+  const convRepo = repositories.conversations;
+  const msgRepo = repositories.messages;
 
   // POST /ask — Main RAG endpoint
   app.post(
@@ -43,7 +36,6 @@ export async function conversationRoutes(app: FastifyInstance) {
     "/conversations",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const convRepo = new PrismaConversationRepository(prisma);
       const convs = await convRepo.findByUserId(req.user.sub);
       return reply.send({ conversations: convs });
     }
@@ -55,8 +47,6 @@ export async function conversationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (req, reply) => {
       const { conversationId } = ConversationParams.parse(req.params);
-      const convRepo = new PrismaConversationRepository(prisma);
-      const msgRepo = new PrismaMessageRepository(prisma);
 
       const conv = await convRepo.findById(conversationId);
       if (!conv || conv.userId !== req.user.sub) {

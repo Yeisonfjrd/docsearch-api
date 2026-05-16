@@ -5,14 +5,14 @@ import type {
   ICitationRepository,
   IAuditRepository,
 } from "../../domain/repositories.js";
-import { generateEmbedding, generateAnswer } from "../../infrastructure/ai/factory.js";
+import type { AiProvider } from "../../infrastructure/ai/factory.js";
 import { getConfig } from "../../infrastructure/config.js";
 
 export interface AnswerQuestionInput {
   userId: string;
   conversationId?: string;
   question: string;
-  documentIds?: string[]; // filter by specific docs, or search all
+  documentIds?: string[];
   ip?: string;
 }
 
@@ -46,13 +46,13 @@ export class AnswerQuestionUseCase {
     private readonly conversations: IConversationRepository,
     private readonly messages: IMessageRepository,
     private readonly citations: ICitationRepository,
-    private readonly audit: IAuditRepository
+    private readonly audit: IAuditRepository,
+    private readonly aiProvider: Pick<AiProvider, "generateEmbedding" | "generateAnswer">
   ) {}
 
   async execute(input: AnswerQuestionInput): Promise<AnswerQuestionOutput> {
     const config = getConfig();
 
-    // ── 1. Ensure conversation ───────────────────────────────────────────────
     let conversationId = input.conversationId;
     if (!conversationId) {
       const conv = await this.conversations.create({
@@ -62,7 +62,6 @@ export class AnswerQuestionUseCase {
       conversationId = conv.id;
     }
 
-    // ── 2. Save user message ─────────────────────────────────────────────────
     await this.messages.create({
       conversationId,
       role: "user",
@@ -70,10 +69,8 @@ export class AnswerQuestionUseCase {
       queryStatus: "QUEUED",
     });
 
-    // ── 3. Embed question ────────────────────────────────────────────────────
-    const queryEmbedding = await generateEmbedding(input.question);
+    const queryEmbedding = await this.aiProvider.generateEmbedding(input.question);
 
-    // ── 4. Retrieve relevant chunks ──────────────────────────────────────────
     const similarChunks = await this.chunks.findSimilar(
       queryEmbedding,
       config.RAG_TOP_K,
@@ -99,7 +96,6 @@ export class AnswerQuestionUseCase {
       };
     }
 
-    // ── 5. Build context string ──────────────────────────────────────────────
     const context = similarChunks
       .map(
         (c, i) =>
@@ -107,21 +103,18 @@ export class AnswerQuestionUseCase {
       )
       .join("\n\n---\n\n");
 
-    // ── 6. Get conversation history ──────────────────────────────────────────
     const history = await this.messages.findByConversationId(conversationId);
     const chatHistory = history.slice(-10).map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
 
-    // ── 7. Generate answer ───────────────────────────────────────────────────
-    const { content, model, latencyMs } = await generateAnswer(
+    const { content, model, latencyMs } = await this.aiProvider.generateAnswer(
       SYSTEM_PROMPT,
       context,
       chatHistory
     );
 
-    // ── 8. Save assistant message ────────────────────────────────────────────
     const assistantMsg = await this.messages.create({
       conversationId,
       role: "assistant",
@@ -131,7 +124,6 @@ export class AnswerQuestionUseCase {
       queryStatus: "ANSWERED",
     });
 
-    // ── 9. Save citations ────────────────────────────────────────────────────
     const citationData = similarChunks.map((c) => ({
       messageId: assistantMsg.id,
       documentId: c.documentId,
@@ -141,7 +133,6 @@ export class AnswerQuestionUseCase {
     }));
     await this.citations.createMany(citationData);
 
-    // ── 10. Audit ────────────────────────────────────────────────────────────
     await this.audit.log({
       userId: input.userId,
       action: "QUESTION_ANSWERED",
