@@ -1,6 +1,3 @@
-// ─── Repository Interfaces (Ports) ───────────────────────────────────────────
-// El dominio define QUÉ necesita; la infra define CÓMO lo provee.
-
 import type {
   User,
   Document,
@@ -13,15 +10,11 @@ import type {
   DocumentStatus,
 } from "./entities/index.js";
 
-// ─── User ────────────────────────────────────────────────────────────────────
-
 export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   create(data: Omit<User, "id" | "createdAt">): Promise<User>;
 }
-
-// ─── Document ────────────────────────────────────────────────────────────────
 
 export interface IDocumentRepository {
   findById(id: string): Promise<Document | null>;
@@ -35,10 +28,9 @@ export interface IDocumentRepository {
   ): Promise<void>;
 }
 
-// ─── Chunk ───────────────────────────────────────────────────────────────────
-
 export interface IChunkRepository {
   createMany(chunks: Omit<DocumentChunk, "id">[]): Promise<void>;
+  replaceByDocumentId(documentId: string, chunks: Omit<DocumentChunk, "id">[]): Promise<void>;
   findSimilar(
     embedding: number[],
     topK: number,
@@ -47,8 +39,6 @@ export interface IChunkRepository {
   ): Promise<Array<DocumentChunk & { similarity: number }>>;
   deleteByDocumentId(documentId: string): Promise<void>;
 }
-
-// ─── Conversation ────────────────────────────────────────────────────────────
 
 export interface IConversationRepository {
   findById(id: string): Promise<Conversation | null>;
@@ -66,13 +56,9 @@ export interface ICitationRepository {
   findByMessageId(messageId: string): Promise<Citation[]>;
 }
 
-// ─── Audit ───────────────────────────────────────────────────────────────────
-
 export interface IAuditRepository {
   log(data: Omit<AuditLog, "id" | "createdAt">): Promise<void>;
 }
-
-// ─── Jobs ─────────────────────────────────────────────────────────────────────
 
 export interface IIngestionJobRepository {
   findByDocumentId(documentId: string): Promise<IngestionJob | null>;

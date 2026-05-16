@@ -92,10 +92,11 @@ model DocumentChunk {
   pageNumber      Int                          @map("page_number")
   chunkIndex      Int                          @map("chunk_index")
   content         String
-  embeddingVector Unsupported("vector(1536)")?  @map("embedding_vector")
+  embeddingVector Unsupported("vector(768)")?   @map("embedding_vector")
   tokenCount      Int                          @map("token_count")
   startOffset     Int                          @map("start_offset")
   endOffset       Int                          @map("end_offset")
+  isActive        Boolean                      @default(true) @map("is_active")
 
   document  Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   citations Citation[]

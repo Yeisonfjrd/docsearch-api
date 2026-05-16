@@ -26,7 +26,6 @@ export async function disconnectRedis(): Promise<void> {
   _client = undefined;
 }
 
-// ─── Token Bucket Rate Limiter ────────────────────────────────────────────────
 
 const RATE_LIMIT_SCRIPT = `
 local key = KEYS[1]
@@ -39,7 +38,6 @@ local bucket = redis.call('HMGET', key, 'tokens', 'last_refill')
 local tokens = tonumber(bucket[1]) or capacity
 local last_refill = tonumber(bucket[2]) or now
 
--- Refill tokens since last check
 local elapsed = now - last_refill
 local refill = elapsed * refill_rate
 tokens = math.min(capacity, tokens + refill)

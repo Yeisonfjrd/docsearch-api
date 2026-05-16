@@ -1,6 +1,3 @@
-// ─── Domain Entities ─────────────────────────────────────────────────────────
-// Tipos puros del dominio, sin dependencias de infraestructura
-
 export type UserRole = "ADMIN" | "USER";
 
 export interface User {
@@ -10,8 +7,6 @@ export interface User {
   role: UserRole;
   createdAt: Date;
 }
-
-// ─── Document ────────────────────────────────────────────────────────────────
 
 export type DocumentStatus =
   | "UPLOADED"
@@ -35,8 +30,6 @@ export interface Document {
   errorMessage?: string;
 }
 
-// ─── Chunk ───────────────────────────────────────────────────────────────────
-
 export interface DocumentChunk {
   id: string;
   documentId: string;
@@ -48,8 +41,6 @@ export interface DocumentChunk {
   startOffset: number;
   endOffset: number;
 }
-
-// ─── Conversation ────────────────────────────────────────────────────────────
 
 export type MessageRole = "user" | "assistant" | "system";
 export type QueryStatus =
@@ -77,8 +68,6 @@ export interface Message {
   createdAt: Date;
 }
 
-// ─── Citation ────────────────────────────────────────────────────────────────
-
 export interface Citation {
   id: string;
   messageId: string;
@@ -88,8 +77,6 @@ export interface Citation {
   paragraphRef?: string;
   similarityScore: number;
 }
-
-// ─── Audit ───────────────────────────────────────────────────────────────────
 
 export interface AuditLog {
   id: string;
@@ -102,8 +89,6 @@ export interface AuditLog {
   metadataJson?: Record<string, unknown>;
   createdAt: Date;
 }
-
-// ─── Jobs ─────────────────────────────────────────────────────────────────────
 
 export type JobStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 
