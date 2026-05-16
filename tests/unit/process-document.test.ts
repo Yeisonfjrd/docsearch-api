@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ProcessDocumentUseCase } from "../../src/application/use-cases/process-document.js";
 
-// ─── Mock infrastructure ──────────────────────────────────────────────────────
-
 vi.mock("../../src/infrastructure/parsers/document-parser.js", () => ({
   parseDocument: vi.fn().mockResolvedValue({
     text: "Hello world. This is a test.",
@@ -21,12 +19,6 @@ vi.mock("../../src/infrastructure/parsers/document-parser.js", () => ({
     },
   ]),
 }));
-
-vi.mock("../../src/infrastructure/ai/openai.js", () => ({
-  generateEmbeddings: vi.fn().mockResolvedValue([[0.1, 0.2, 0.3]]),
-}));
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("ProcessDocumentUseCase", () => {
   const mockDoc = {
@@ -59,6 +51,7 @@ describe("ProcessDocumentUseCase", () => {
 
   const chunkRepo = {
     createMany: vi.fn().mockResolvedValue(undefined),
+    replaceByDocumentId: vi.fn().mockResolvedValue(undefined),
     findSimilar: vi.fn(),
     deleteByDocumentId: vi.fn(),
   };
@@ -73,22 +66,31 @@ describe("ProcessDocumentUseCase", () => {
     log: vi.fn().mockResolvedValue(undefined),
   };
 
+  const aiProvider = {
+    generateEmbeddings: vi.fn().mockResolvedValue([[0.1, 0.2, 0.3]]),
+  };
+
   beforeEach(() => vi.clearAllMocks());
 
   it("procesa un documento exitosamente", async () => {
-    const useCase = new ProcessDocumentUseCase(documentRepo, chunkRepo, jobRepo, auditRepo);
+    const useCase = new ProcessDocumentUseCase(documentRepo, chunkRepo, jobRepo, auditRepo, aiProvider);
     await useCase.execute({ documentId: "doc-1" });
 
     expect(documentRepo.updateStatus).toHaveBeenCalledWith("doc-1", "PARSING");
     expect(documentRepo.updateStatus).toHaveBeenCalledWith("doc-1", "INDEXING", expect.any(Object));
     expect(documentRepo.updateStatus).toHaveBeenCalledWith("doc-1", "READY", expect.any(Object));
-    expect(chunkRepo.createMany).toHaveBeenCalledOnce();
+    expect(aiProvider.generateEmbeddings).toHaveBeenCalledWith(["Hello world."]);
+    expect(chunkRepo.replaceByDocumentId).toHaveBeenCalledWith(
+      "doc-1",
+      expect.arrayContaining([expect.objectContaining({ embeddingVector: [0.1, 0.2, 0.3] })])
+    );
+    expect(chunkRepo.deleteByDocumentId).not.toHaveBeenCalled();
     expect(auditRepo.log).toHaveBeenCalledWith(expect.objectContaining({ action: "DOCUMENT_PROCESSED" }));
   });
 
   it("marca como FAILED cuando el documento no existe", async () => {
     documentRepo.findById.mockResolvedValueOnce(null);
-    const useCase = new ProcessDocumentUseCase(documentRepo, chunkRepo, jobRepo, auditRepo);
+    const useCase = new ProcessDocumentUseCase(documentRepo, chunkRepo, jobRepo, auditRepo, aiProvider);
 
     await expect(useCase.execute({ documentId: "doc-1" })).rejects.toThrow("Documento no encontrado");
   });
@@ -97,10 +99,11 @@ describe("ProcessDocumentUseCase", () => {
     const { parseDocument } = await import("../../src/infrastructure/parsers/document-parser.js");
     vi.mocked(parseDocument).mockRejectedValueOnce(new Error("PDF corrupto"));
 
-    const useCase = new ProcessDocumentUseCase(documentRepo, chunkRepo, jobRepo, auditRepo);
+    const useCase = new ProcessDocumentUseCase(documentRepo, chunkRepo, jobRepo, auditRepo, aiProvider);
     await expect(useCase.execute({ documentId: "doc-1" })).rejects.toThrow("PDF corrupto");
 
     expect(documentRepo.updateStatus).toHaveBeenCalledWith("doc-1", "FAILED", { errorMessage: "PDF corrupto" });
+    expect(chunkRepo.replaceByDocumentId).not.toHaveBeenCalled();
     expect(auditRepo.log).toHaveBeenCalledWith(expect.objectContaining({ action: "DOCUMENT_PROCESS_FAILED" }));
   });
 });
