@@ -1,32 +1,23 @@
 import type { FastifyInstance } from "fastify";
-import { getPrismaClient } from "../../infrastructure/database/prisma.js";
-import { UploadDocumentUseCase } from "../../application/use-cases/upload-document.js";
-import { ProcessDocumentUseCase } from "../../application/use-cases/process-document.js";
 import { DocumentParams } from "../schemas/index.js";
+import type { AppContainer } from "../../infrastructure/container.js";
 
-// Prisma-based repository adapters (inline for Fase 1 — extraer a infrastructure/ en Fase 2)
-import { PrismaDocumentRepository } from "../../infrastructure/database/repositories/document.js";
-import { PrismaIngestionJobRepository } from "../../infrastructure/database/repositories/ingestion-job.js";
-import { PrismaAuditRepository } from "../../infrastructure/database/repositories/audit.js";
-import { PrismaChunkRepository } from "../../infrastructure/database/repositories/chunk.js";
-import { getConfig } from "../../infrastructure/config.js";
+interface RouteOptions {
+  container: AppContainer;
+}
 
-export async function documentRoutes(app: FastifyInstance) {
-  const prisma = getPrismaClient();
-  const documentRepo = new PrismaDocumentRepository(prisma);
-  const jobRepo = new PrismaIngestionJobRepository(prisma);
-  const auditRepo = new PrismaAuditRepository(prisma);
-  const chunkRepo = new PrismaChunkRepository(prisma);
-
-  const uploadUseCase = new UploadDocumentUseCase(documentRepo, jobRepo, auditRepo);
-  const processUseCase = new ProcessDocumentUseCase(documentRepo, chunkRepo, jobRepo, auditRepo);
+export async function documentRoutes(app: FastifyInstance, options: RouteOptions) {
+  const { config, repositories, useCases } = options.container;
+  const documentRepo = repositories.documents;
+  const jobRepo = repositories.jobs;
+  const uploadUseCase = useCases.uploadDocument;
+  const processUseCase = useCases.processDocument;
 
   // POST /documents — Upload
   app.post(
     "/documents",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const config = getConfig();
       const data = await req.file({
         limits: { fileSize: config.MAX_FILE_SIZE_MB * 1024 * 1024 },
       });

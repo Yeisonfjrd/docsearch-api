@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import type {
   IDocumentRepository,
@@ -19,8 +19,6 @@ import type {
   Message,
   Citation,
 } from "../../../domain/entities/index.js";
-
-// ─── Document ────────────────────────────────────────────────────────────────
 
 export class PrismaDocumentRepository implements IDocumentRepository {
   constructor(private readonly db: PrismaClient) {}
@@ -50,27 +48,54 @@ export class PrismaDocumentRepository implements IDocumentRepository {
   }
 }
 
-// ─── Chunk ───────────────────────────────────────────────────────────────────
-
 export class PrismaChunkRepository implements IChunkRepository {
   constructor(private readonly db: PrismaClient) {}
 
   async createMany(chunks: Omit<DocumentChunk, "id">[]) {
-    // pgvector requires raw SQL for vector insertion
     for (const chunk of chunks) {
+      const id = uuidv4();
       const vectorStr = chunk.embeddingVector
         ? `[${chunk.embeddingVector.join(",")}]`
         : null;
 
       await this.db.$executeRaw`
         INSERT INTO document_chunks
-          (id, document_id, page_number, chunk_index, content, embedding_vector, token_count, start_offset, end_offset)
+          (id, document_id, page_number, chunk_index, content, embedding_vector, token_count, start_offset, end_offset, is_active)
         VALUES
-          (${uuidv4()}, ${chunk.documentId}, ${chunk.pageNumber}, ${chunk.chunkIndex},
+          (${id}, ${chunk.documentId}, ${chunk.pageNumber}, ${chunk.chunkIndex},
            ${chunk.content}, ${vectorStr}::vector, ${chunk.tokenCount},
-           ${chunk.startOffset}, ${chunk.endOffset})
+           ${chunk.startOffset}, ${chunk.endOffset}, true)
       `;
     }
+  }
+
+  async replaceByDocumentId(documentId: string, chunks: Omit<DocumentChunk, "id">[]) {
+    const newChunkIds = chunks.map(() => uuidv4());
+
+    await this.db.$transaction(async (tx) => {
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const vectorStr = chunk.embeddingVector
+          ? `[${chunk.embeddingVector.join(",")}]`
+          : null;
+
+        await tx.$executeRaw`
+          INSERT INTO document_chunks
+            (id, document_id, page_number, chunk_index, content, embedding_vector, token_count, start_offset, end_offset, is_active)
+          VALUES
+            (${newChunkIds[i]}, ${chunk.documentId}, ${chunk.pageNumber}, ${chunk.chunkIndex},
+             ${chunk.content}, ${vectorStr}::vector, ${chunk.tokenCount},
+             ${chunk.startOffset}, ${chunk.endOffset}, true)
+        `;
+      }
+
+      await tx.$executeRaw`
+        UPDATE document_chunks
+        SET is_active = false
+        WHERE document_id = ${documentId}
+          AND id <> ALL(${newChunkIds}::text[])
+      `;
+    });
   }
 
   async findSimilar(embedding: number[], topK: number, threshold: number, documentIds?: string[]) {
@@ -83,7 +108,8 @@ export class PrismaChunkRepository implements IChunkRepository {
                  start_offset as "startOffset", end_offset as "endOffset",
                  1 - (embedding_vector <=> ${vectorStr}::vector) as similarity
           FROM document_chunks
-          WHERE document_id = ANY(${documentIds}::uuid[])
+          WHERE document_id = ANY(${documentIds}::text[])
+            AND is_active = true
             AND 1 - (embedding_vector <=> ${vectorStr}::vector) >= ${threshold}
           ORDER BY embedding_vector <=> ${vectorStr}::vector
           LIMIT ${topK}
@@ -94,7 +120,8 @@ export class PrismaChunkRepository implements IChunkRepository {
                  start_offset as "startOffset", end_offset as "endOffset",
                  1 - (embedding_vector <=> ${vectorStr}::vector) as similarity
           FROM document_chunks
-          WHERE 1 - (embedding_vector <=> ${vectorStr}::vector) >= ${threshold}
+          WHERE is_active = true
+            AND 1 - (embedding_vector <=> ${vectorStr}::vector) >= ${threshold}
           ORDER BY embedding_vector <=> ${vectorStr}::vector
           LIMIT ${topK}
         `;
@@ -106,8 +133,6 @@ export class PrismaChunkRepository implements IChunkRepository {
     await this.db.documentChunk.deleteMany({ where: { documentId } });
   }
 }
-
-// ─── IngestionJob ─────────────────────────────────────────────────────────────
 
 export class PrismaIngestionJobRepository implements IIngestionJobRepository {
   constructor(private readonly db: PrismaClient) {}
@@ -127,17 +152,24 @@ export class PrismaIngestionJobRepository implements IIngestionJobRepository {
   }
 }
 
-// ─── Audit ────────────────────────────────────────────────────────────────────
-
 export class PrismaAuditRepository implements IAuditRepository {
   constructor(private readonly db: PrismaClient) {}
 
   async log(data: Omit<AuditLog, "id" | "createdAt">) {
-    await this.db.auditLog.create({ data: { id: uuidv4(), ...data } });
+    await this.db.auditLog.create({
+      data: {
+        id: uuidv4(),
+        userId: data.userId,
+        action: data.action,
+        entityType: data.entityType,
+        entityId: data.entityId,
+        ip: data.ip,
+        userAgent: data.userAgent,
+        metadataJson: data.metadataJson as Prisma.InputJsonValue | undefined,
+      },
+    });
   }
 }
-
-// ─── Conversation ─────────────────────────────────────────────────────────────
 
 export class PrismaConversationRepository implements IConversationRepository {
   constructor(private readonly db: PrismaClient) {}
@@ -158,8 +190,6 @@ export class PrismaConversationRepository implements IConversationRepository {
   }
 }
 
-// ─── Message ──────────────────────────────────────────────────────────────────
-
 export class PrismaMessageRepository implements IMessageRepository {
   constructor(private readonly db: PrismaClient) {}
 
@@ -173,8 +203,6 @@ export class PrismaMessageRepository implements IMessageRepository {
     return row as Message;
   }
 }
-
-// ─── Citation ─────────────────────────────────────────────────────────────────
 
 export class PrismaCitationRepository implements ICitationRepository {
   constructor(private readonly db: PrismaClient) {}

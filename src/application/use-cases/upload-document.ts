@@ -33,14 +33,12 @@ export class UploadDocumentUseCase {
   async execute(input: UploadDocumentInput): Promise<UploadDocumentOutput> {
     const config = getConfig();
 
-    // 1. Validate MIME type
     if (!config.ALLOWED_MIME_TYPES.includes(input.mimeType)) {
       throw new Error(
         `Tipo de archivo no permitido: ${input.mimeType}. Tipos permitidos: ${config.ALLOWED_MIME_TYPES.join(", ")}`
       );
     }
 
-    // 2. Save to disk + compute checksum simultaneously
     await mkdir(config.STORAGE_LOCAL_PATH, { recursive: true });
 
     const tempId = uuidv4();
@@ -53,7 +51,6 @@ export class UploadDocumentUseCase {
       config.MAX_FILE_SIZE_MB * 1024 * 1024
     );
 
-    // 3. Deduplication by checksum
     const existing = await this.documents.findByChecksum(checksum);
     if (existing) {
       await this.audit.log({
@@ -67,7 +64,6 @@ export class UploadDocumentUseCase {
       return { document: existing, isDuplicate: true };
     }
 
-    // 4. Persist document record
     const document = await this.documents.create({
       userId: input.userId,
       filename: input.filename,
@@ -78,10 +74,8 @@ export class UploadDocumentUseCase {
       sourcePath: storagePath,
     });
 
-    // 5. Create ingestion job
     await this.jobs.create({ documentId: document.id });
 
-    // 6. Audit
     await this.audit.log({
       userId: input.userId,
       action: "DOCUMENT_UPLOADED",
