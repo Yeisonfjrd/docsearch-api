@@ -3,11 +3,13 @@ import { ProcessDocumentUseCase } from "../../src/application/use-cases/process-
 
 vi.mock("../../src/infrastructure/parsers/document-parser.js", () => ({
   parseDocument: vi.fn().mockResolvedValue({
-    text: "Hello world. This is a test.",
+    fullText: "Hello world. This is a test.",
     pageCount: 1,
-    pages: [{ pageNumber: 1, content: "Hello world. This is a test." }],
+    sections: [{ pageNumber: 1, title: null, content: "Hello world. This is a test." }],
+    sourceFormat: "pdf",
+    metadata: {},
   }),
-  chunkPages: vi.fn().mockReturnValue([
+  chunkDocument: vi.fn().mockReturnValue([
     {
       documentId: "doc-1",
       pageNumber: 1,
@@ -16,6 +18,7 @@ vi.mock("../../src/infrastructure/parsers/document-parser.js", () => ({
       tokenCount: 2,
       startOffset: 0,
       endOffset: 12,
+      sourceFormat: "pdf",
     },
   ]),
 }));

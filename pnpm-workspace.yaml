@@ -4,3 +4,4 @@ allowBuilds:
   esbuild: false
   prisma: false
   protobufjs: false
+  tesseract.js: true

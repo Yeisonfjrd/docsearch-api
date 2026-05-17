@@ -9,6 +9,7 @@ const baseConfig: Config = {
   LOG_LEVEL: "fatal",
   JWT_SECRET: "change-me-at-least-32-chars-long!!",
   JWT_EXPIRES_IN: "7d",
+  CORS_ORIGIN: "*",
   DATABASE_URL: "postgresql://docsearch:docsearch@localhost:5432/docsearch",
   REDIS_URL: "redis://localhost:6379",
   AI_PROVIDER: "ollama",
