@@ -60,11 +60,11 @@ export class PrismaChunkRepository implements IChunkRepository {
 
       await this.db.$executeRaw`
         INSERT INTO document_chunks
-          (id, document_id, page_number, chunk_index, content, embedding_vector, token_count, start_offset, end_offset, is_active)
+          (id, document_id, page_number, chunk_index, content, embedding_vector, token_count, start_offset, end_offset, source_format, is_active)
         VALUES
           (${id}, ${chunk.documentId}, ${chunk.pageNumber}, ${chunk.chunkIndex},
            ${chunk.content}, ${vectorStr}::vector, ${chunk.tokenCount},
-           ${chunk.startOffset}, ${chunk.endOffset}, true)
+           ${chunk.startOffset}, ${chunk.endOffset}, ${chunk.sourceFormat}, true)
       `;
     }
   }
@@ -81,11 +81,11 @@ export class PrismaChunkRepository implements IChunkRepository {
 
         await tx.$executeRaw`
           INSERT INTO document_chunks
-            (id, document_id, page_number, chunk_index, content, embedding_vector, token_count, start_offset, end_offset, is_active)
+            (id, document_id, page_number, chunk_index, content, embedding_vector, token_count, start_offset, end_offset, source_format, is_active)
           VALUES
             (${newChunkIds[i]}, ${chunk.documentId}, ${chunk.pageNumber}, ${chunk.chunkIndex},
              ${chunk.content}, ${vectorStr}::vector, ${chunk.tokenCount},
-             ${chunk.startOffset}, ${chunk.endOffset}, true)
+             ${chunk.startOffset}, ${chunk.endOffset}, ${chunk.sourceFormat}, true)
         `;
       }
 
@@ -106,6 +106,7 @@ export class PrismaChunkRepository implements IChunkRepository {
           SELECT id, document_id as "documentId", page_number as "pageNumber",
                  chunk_index as "chunkIndex", content, token_count as "tokenCount",
                  start_offset as "startOffset", end_offset as "endOffset",
+                 source_format as "sourceFormat",
                  1 - (embedding_vector <=> ${vectorStr}::vector) as similarity
           FROM document_chunks
           WHERE document_id = ANY(${documentIds}::text[])
@@ -118,6 +119,7 @@ export class PrismaChunkRepository implements IChunkRepository {
           SELECT id, document_id as "documentId", page_number as "pageNumber",
                  chunk_index as "chunkIndex", content, token_count as "tokenCount",
                  start_offset as "startOffset", end_offset as "endOffset",
+                 source_format as "sourceFormat",
                  1 - (embedding_vector <=> ${vectorStr}::vector) as similarity
           FROM document_chunks
           WHERE is_active = true

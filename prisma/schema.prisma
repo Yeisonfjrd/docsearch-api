@@ -96,6 +96,7 @@ model DocumentChunk {
   tokenCount      Int                          @map("token_count")
   startOffset     Int                          @map("start_offset")
   endOffset       Int                          @map("end_offset")
+  sourceFormat    String                       @default("pdf") @map("source_format")
   isActive        Boolean                      @default(true) @map("is_active")
 
   document  Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
