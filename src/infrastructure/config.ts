@@ -8,6 +8,7 @@ const configSchema = z.object({
 
   JWT_SECRET: z.string().min(32, "JWT_SECRET debe tener al menos 32 caracteres"),
   JWT_EXPIRES_IN: z.string().default("7d"),
+  CORS_ORIGIN: z.string().default("*"),
 
   DATABASE_URL: z.string().url(),
 
@@ -34,7 +35,14 @@ const configSchema = z.object({
   MAX_FILE_SIZE_MB: z.coerce.number().default(20),
   ALLOWED_MIME_TYPES: z
     .string()
-    .default("application/pdf,text/plain")
+    .default([
+      "application/pdf",
+      "text/plain",
+      "text/markdown",
+      "text/csv",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ].join(","))
     .transform((s) => s.split(",").map((t) => t.trim())),
 
   RATE_LIMIT_UPLOAD_PER_MINUTE: z.coerce.number().default(10),
