@@ -1,0 +1,13 @@
+Introducción
+
+Este es el primer párrafo del documento de prueba.
+Contiene información básica sobre el tema principal.
+
+Segunda sección
+
+Este es el segundo bloque de contenido.
+Tiene múltiples líneas dentro del mismo párrafo.
+
+Conclusión
+
+Resumen final del documento.
