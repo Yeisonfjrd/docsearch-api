@@ -40,6 +40,7 @@ export interface DocumentChunk {
   tokenCount: number;
   startOffset: number;
   endOffset: number;
+  sourceFormat: string;
 }
 
 export type MessageRole = "user" | "assistant" | "system";

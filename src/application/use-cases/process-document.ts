@@ -4,7 +4,7 @@ import type {
   IIngestionJobRepository,
   IAuditRepository,
 } from "../../domain/repositories.js";
-import { parseDocument, chunkPages } from "../../infrastructure/parsers/document-parser.js";
+import { parseDocument, chunkDocument } from "../../infrastructure/parsers/document-parser.js";
 import type { AiProvider } from "../../infrastructure/ai/factory.js";
 
 export interface ProcessDocumentInput {
@@ -39,7 +39,7 @@ export class ProcessDocumentUseCase {
         pageCount: parsed.pageCount,
       });
 
-      const rawChunks = chunkPages(documentId, parsed.pages);
+      const rawChunks = chunkDocument(documentId, parsed);
 
       if (rawChunks.length === 0) {
         throw new Error("El documento no produjo chunks (¿está vacío o corrupto?)");
@@ -86,7 +86,7 @@ export class ProcessDocumentUseCase {
   }
 
   private async embedInBatches(
-    chunks: ReturnType<typeof chunkPages>
+    chunks: ReturnType<typeof chunkDocument>
   ): Promise<Array<(typeof chunks)[0] & { embeddingVector: number[] }>> {
     const result = [];
 

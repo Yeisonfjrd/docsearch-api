@@ -28,7 +28,10 @@ export async function buildApp() {
   });
 
   await app.register(fastifyHelmet);
-  await app.register(fastifyCors, { origin: config.NODE_ENV === "development" });
+  await app.register(fastifyCors, {
+    origin: config.NODE_ENV === "production" ? config.CORS_ORIGIN : true,
+    credentials: true,
+  });
   await app.register(fastifyJwt, {
     secret: config.JWT_SECRET,
     sign: { expiresIn: config.JWT_EXPIRES_IN },
