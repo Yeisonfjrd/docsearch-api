@@ -121,7 +121,7 @@ export class OllamaProvider implements AiProvider {
 
   private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2_000);
+    const timeout = setTimeout(() => controller.abort(), 60_000);
 
     try {
       const response = await fetch(url, { ...init, signal: controller.signal });
