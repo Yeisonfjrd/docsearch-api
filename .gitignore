@@ -4,4 +4,3 @@ dist/
 uploads/
 coverage/
 *.js.map
-prisma/migrations/
