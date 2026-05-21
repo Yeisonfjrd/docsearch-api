@@ -1,120 +1,35 @@
-# docsearch
+# DocSearch API
 
-**Plataforma de consulta y análisis de documentos técnicos con búsqueda semántica, trazabilidad y auditoría.**
+Backend Fastify con pipeline RAG completo.
 
-## Stack
-
-| Capa | Tecnología |
-|---|---|
-| API | Fastify + TypeScript |
-| ORM | Prisma + PostgreSQL |
-| Vectores | pgvector |
-| IA | OpenAI (embeddings + chat) |
-| Cache / Rate limit | Redis |
-| Tests | Vitest |
-| Observabilidad | OpenTelemetry |
-
-## Arquitectura
-
-```
-src/
-├── interface/          # Rutas, middleware, schemas de validación
-├── application/        # Casos de uso (lógica de negocio)
-├── domain/             # Entidades y contratos (ports)
-└── infrastructure/     # Implementaciones concretas (DB, AI, cache, parsers)
-```
-
-## Setup local
-
-### 1. Prerrequisitos
-
-- Node.js 20+
-- Docker y Docker Compose
-
-### 2. Clonar e instalar dependencias
-
+## Desarrollo
 ```bash
-git clone <repo>
-cd docsearch
-npm install
-```
-
-### 3. Configurar variables de entorno
-
-```bash
-cp .env.example .env
-# Editá .env y completá OPENAI_API_KEY y JWT_SECRET
-```
-
-### 4. Levantar infraestructura (Postgres + Redis)
-
-```bash
+cp .env.example .env   # completar JWT_SECRET
 docker compose up -d
+pnpm exec prisma generate
+pnpm exec prisma migrate dev
+pnpm dev
 ```
 
-### 5. Migrar base de datos
-
-```bash
-npm run db:generate
-npm run db:migrate
-```
-
-### 6. Correr en desarrollo
-
-```bash
-npm run dev
-```
-
-El servidor queda en `http://localhost:3000`.
-
----
-
-## API — Endpoints principales
-
-### Auth
-
-```
-POST /auth/register   { email, password }
-POST /auth/login      { email, password }
-```
-
-### Documentos
-
-```
-POST   /documents              (multipart/form-data, campo: file)
-GET    /documents
-GET    /documents/:documentId
-```
-
-### RAG
-
-```
-POST /ask   { question, conversationId?, documentIds? }
-GET  /conversations
-GET  /conversations/:conversationId/messages
-```
-
-### Health
-
-```
-GET /health
-```
-
----
-
-## Roadmap
-
-- **Fase 1** ✅ — Auth JWT, modelos Prisma, upload, healthcheck
-- **Fase 2** ✅ — Parser PDF, chunking, embeddings, indexación vectorial
-- **Fase 3** ✅ — Búsqueda semántica, RAG, citas trazables, historial
-- **Fase 4** — Rate limiting Redis, OpenTelemetry, Docker multi-stage, métricas
-
----
+## Variables de entorno clave
+| Variable | Descripción |
+|----------|-------------|
+| `JWT_SECRET` | Mínimo 32 chars |
+| `AI_PROVIDER` | `ollama` (default) o `openai` |
+| `LLM_MODEL` | `llama3.1` (default) |
+| `EMBEDDING_MODEL` | `nomic-embed-text` (default) |
+| `DATABASE_URL` | PostgreSQL connection string |
 
 ## Tests
-
 ```bash
-npm test              # watch mode
-npm run test:run      # una pasada
-npm run test:coverage # con cobertura
+pnpm test:run
+pnpm typecheck
+```
+
+## Arquitectura
+```
+domain/          → entidades e interfaces (sin deps)
+application/     → casos de uso (inyección de dependencias)
+infrastructure/  → Prisma, Redis, Ollama/OpenAI, parsers
+interface/       → rutas Fastify, schemas, middleware
 ```
