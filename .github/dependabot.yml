@@ -1,6 +1,6 @@
 version: 2
 updates:
- 
+
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -10,8 +10,22 @@ updates:
     labels:
       - dependencies
     commit-message:
-      prefix: chore
- 
+      prefix: "chore"
+    groups:
+      dev-dependencies:
+        dependency-type: development
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      opentelemetry:
+        patterns:
+          - "@opentelemetry/*"
+      fastify:
+        patterns:
+          - "fastify"
+          - "@fastify/*"
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -20,5 +34,4 @@ updates:
     labels:
       - dependencies
     commit-message:
-      prefix: chore
- 
+      prefix: "chore(ci)"
