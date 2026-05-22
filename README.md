@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="public/logo.svg" width="1000" alt="DocSearch logo">
+</p>
 # DocSearch — API
 
 Fastify · Node.js 22 · TypeScript · PostgreSQL + pgvector · Ollama.  
