@@ -8,7 +8,7 @@ on:
 
 jobs:
   api:
-    name: API — typecheck + tests
+    name: Typecheck + Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -27,38 +27,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        working-directory: apps/api
         run: pnpm typecheck
 
       - name: Tests
-        working-directory: apps/api
         run: pnpm test:run
-
-  web:
-    name: Web — typecheck + build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        working-directory: apps/web
-        run: pnpm typecheck
-
-      - name: Build
-        working-directory: apps/web
-        run: pnpm build
-        env:
-          VITE_API_URL: http://localhost:3000
