@@ -31,7 +31,7 @@
     "@opentelemetry/instrumentation-fastify": "^0.40.0",
     "@opentelemetry/instrumentation-http": "^0.53.0",
     "@opentelemetry/sdk-node": "^0.53.0",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^7.8.0",
     "csv-parse": "^6.2.1",
     "fastify": "^5.8.5",
     "ioredis": "^5.4.1",
@@ -49,7 +49,7 @@
     "@types/pdf-parse": "^1.1.4",
     "@types/uuid": "^10.0.0",
     "@vitest/coverage-v8": "^2.1.8",
-    "prisma": "^5.22.0",
+    "prisma": "^7.8.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.8"
