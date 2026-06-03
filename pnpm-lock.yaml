@@ -60,8 +60,8 @@ importers:
         specifier: ^1.12.0
         version: 1.12.0
       officeparser:
-        specifier: ^7.0.3
-        version: 7.0.3
+        specifier: ^7.1.0
+        version: 7.1.0
       openai:
         specifier: ^4.67.3
         version: 4.104.0(zod@3.25.76)
@@ -1649,8 +1649,8 @@ packages:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
     engines: {node: '>=0.10.0'}
 
-  idb-keyval@6.2.4:
-    resolution: {integrity: sha512-D/NzHWUmYJGXi++z67aMSrnisb9A3621CyRK5G89JyTlN13C8xf0g04DLxUKMufPem3e3L2JAXR6Z00OWy183Q==}
+  idb-keyval@6.2.5:
+    resolution: {integrity: sha512-eKQkTnS0relYsSOYomx8ozIbmdsQCKUdhyuIaQ2DZgKuaxtyQQMkyD/wlnQN32pO3yutN1b1L8uqwcDKaJd7/Q==}
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -1862,8 +1862,8 @@ packages:
   obliterator@2.0.5:
     resolution: {integrity: sha512-42CPE9AhahZRsMNslczq0ctAEtqk8Eka26QofnqC346BZdHDySk3LWka23LI7ULIw11NmltpiLagIq8gBozxTw==}
 
-  officeparser@7.0.3:
-    resolution: {integrity: sha512-kFYMS0OzIu53/LyRi+l9UIIPpeOVFlz/GVJvsAUrU6IuHBfmc0Y9/C4w/QadQxio7761U/X1frsFRNjAuyBzmg==}
+  officeparser@7.1.0:
+    resolution: {integrity: sha512-BkN+nQeOWNiwo8ZNesikbtvIKV/ZhB7RlcLmZNdfYrrlaJsceB9zS+YOK+ElaZVKj9vOLQfUvlyByRmoJm6KBg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     peerDependencies:
@@ -3904,7 +3904,7 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  idb-keyval@6.2.4: {}
+  idb-keyval@6.2.5: {}
 
   ieee754@1.2.1: {}
 
@@ -4123,7 +4123,7 @@ snapshots:
 
   obliterator@2.0.5: {}
 
-  officeparser@7.0.3:
+  officeparser@7.1.0:
     dependencies:
       '@xmldom/xmldom': 0.9.10
       fflate: 0.8.3
@@ -4515,7 +4515,7 @@ snapshots:
   tesseract.js@7.0.0:
     dependencies:
       bmp-js: 0.1.0
-      idb-keyval: 6.2.4
+      idb-keyval: 6.2.5
       is-url: 1.2.4
       node-fetch: 2.7.0
       opencollective-postinstall: 2.0.3
