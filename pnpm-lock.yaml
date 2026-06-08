@@ -60,8 +60,8 @@ importers:
         specifier: ^1.12.0
         version: 1.12.0
       officeparser:
-        specifier: ^7.1.0
-        version: 7.1.0
+        specifier: ^7.2.1
+        version: 7.2.1
       openai:
         specifier: ^4.67.3
         version: 4.104.0(zod@3.25.76)
@@ -1880,8 +1880,8 @@ packages:
   obliterator@2.0.5:
     resolution: {integrity: sha512-42CPE9AhahZRsMNslczq0ctAEtqk8Eka26QofnqC346BZdHDySk3LWka23LI7ULIw11NmltpiLagIq8gBozxTw==}
 
-  officeparser@7.1.0:
-    resolution: {integrity: sha512-BkN+nQeOWNiwo8ZNesikbtvIKV/ZhB7RlcLmZNdfYrrlaJsceB9zS+YOK+ElaZVKj9vOLQfUvlyByRmoJm6KBg==}
+  officeparser@7.2.1:
+    resolution: {integrity: sha512-l9v4ygeUAZGjNlmXhQNIOaPpxAbLNHzcN32Mwyad/HfGOxLcMGrz8aXMVCGICxtE0s8Mq5MwAEkO9gdliK7hZw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     peerDependencies:
@@ -4164,7 +4164,7 @@ snapshots:
 
   obliterator@2.0.5: {}
 
-  officeparser@7.1.0:
+  officeparser@7.2.1:
     dependencies:
       '@xmldom/xmldom': 0.9.10
       fflate: 0.8.3
