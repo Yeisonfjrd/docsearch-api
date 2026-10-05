@@ -69,7 +69,7 @@ model Document {
   userId       String         @map("user_id")
   filename     String
   mimeType     String         @map("mime_type")
-  checksum     String         @unique
+  checksum     String
   sizeBytes    Int            @map("size_bytes")
   status       DocumentStatus @default(UPLOADED)
   pageCount    Int?           @map("page_count")
@@ -83,6 +83,7 @@ model Document {
   citations    Citation[]
   ingestionJob IngestionJob?
 
+  @@unique([userId, checksum])
   @@map("documents")
 }
 

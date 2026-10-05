@@ -19,7 +19,7 @@ export interface IUserRepository {
 export interface IDocumentRepository {
   findById(id: string): Promise<Document | null>;
   findByUserId(userId: string): Promise<Document[]>;
-  findByChecksum(checksum: string): Promise<Document | null>;
+  findByChecksum(userId: string, checksum: string): Promise<Document | null>;
   create(data: Omit<Document, "id" | "createdAt">): Promise<Document>;
   updateStatus(
     id: string,

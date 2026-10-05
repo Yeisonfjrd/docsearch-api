@@ -33,8 +33,8 @@ export class PrismaDocumentRepository implements IDocumentRepository {
     return rows as Document[];
   }
 
-  async findByChecksum(checksum: string) {
-    const row = await this.db.document.findUnique({ where: { checksum } });
+  async findByChecksum(userId: string, checksum: string) {
+    const row = await this.db.document.findUnique({ where: { userId_checksum: { userId, checksum } } });
     return row as Document | null;
   }
 

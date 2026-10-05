@@ -51,7 +51,7 @@ export class UploadDocumentUseCase {
       config.MAX_FILE_SIZE_MB * 1024 * 1024
     );
 
-    const existing = await this.documents.findByChecksum(checksum);
+    const existing = await this.documents.findByChecksum(input.userId, checksum);
     if (existing) {
       await this.audit.log({
         userId: input.userId,
