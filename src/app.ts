@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import Fastify, { type FastifyError } from "fastify";
 import fastifyJwt from "@fastify/jwt";
 import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
@@ -51,7 +51,7 @@ export async function buildApp() {
     env: config.NODE_ENV,
   }));
 
-  app.setErrorHandler((err, req, reply) => {
+  app.setErrorHandler<FastifyError>((err, req, reply) => {
     const statusCode = err.statusCode ?? 500;
 
     if (err.name === "ZodError") {
