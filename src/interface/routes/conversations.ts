@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { AskBody, ConversationParams } from "../schemas/index.js";
 import type { AppContainer } from "../../infrastructure/container.js";
+import { ConversationNotFoundError } from "../../application/use-cases/answer-question.js";
 
 interface RouteOptions {
   container: AppContainer;
@@ -19,15 +20,22 @@ export async function conversationRoutes(app: FastifyInstance, options: RouteOpt
     async (req, reply) => {
       const body = AskBody.parse(req.body);
 
-      const result = await answerUseCase.execute({
-        userId: req.user.sub,
-        conversationId: body.conversationId,
-        question: body.question,
-        documentIds: body.documentIds,
-        ip: req.ip,
-      });
+      try {
+        const result = await answerUseCase.execute({
+          userId: req.user.sub,
+          conversationId: body.conversationId,
+          question: body.question,
+          documentIds: body.documentIds,
+          ip: req.ip,
+        });
 
-      return reply.send(result);
+        return reply.send(result);
+      } catch (err) {
+        if (err instanceof ConversationNotFoundError) {
+          return reply.code(404).send({ error: err.message });
+        }
+        throw err;
+      }
     }
   );
 

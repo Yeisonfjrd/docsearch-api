@@ -1,5 +1,6 @@
 import type {
   IChunkRepository,
+  IDocumentRepository,
   IConversationRepository,
   IMessageRepository,
   ICitationRepository,
@@ -40,9 +41,16 @@ Si la respuesta no está en el contexto, decí claramente que no encontraste inf
 No inventes datos, no uses conocimiento externo al contexto.
 Siempre citá la fuente (página y fragmento) al final de cada afirmación importante.`;
 
+export class ConversationNotFoundError extends Error {
+  constructor() {
+    super("Conversación no encontrada");
+  }
+}
+
 export class AnswerQuestionUseCase {
   constructor(
     private readonly chunks: IChunkRepository,
+    private readonly documents: IDocumentRepository,
     private readonly conversations: IConversationRepository,
     private readonly messages: IMessageRepository,
     private readonly citations: ICitationRepository,
@@ -54,7 +62,12 @@ export class AnswerQuestionUseCase {
     const config = getConfig();
 
     let conversationId = input.conversationId;
-    if (!conversationId) {
+    if (conversationId) {
+      const existing = await this.conversations.findById(conversationId);
+      if (!existing || existing.userId !== input.userId) {
+        throw new ConversationNotFoundError();
+      }
+    } else {
       const conv = await this.conversations.create({
         userId: input.userId,
         title: input.question.slice(0, 60),
@@ -69,14 +82,21 @@ export class AnswerQuestionUseCase {
       queryStatus: "QUEUED",
     });
 
-    const queryEmbedding = await this.aiProvider.generateEmbedding(input.question);
+    // Only search documents this user owns. Without this, an empty documentIds
+    // searched every user's chunks, and foreign ids were accepted as-is.
+    const ownedIds = (await this.documents.findByUserId(input.userId)).map((d) => d.id);
+    const searchIds = input.documentIds?.length
+      ? input.documentIds.filter((id) => ownedIds.includes(id))
+      : ownedIds;
 
-    const similarChunks = await this.chunks.findSimilar(
-      queryEmbedding,
-      config.RAG_TOP_K,
-      config.RAG_SIMILARITY_THRESHOLD,
-      input.documentIds
-    );
+    const similarChunks = searchIds.length
+      ? await this.chunks.findSimilar(
+          await this.aiProvider.generateEmbedding(input.question),
+          config.RAG_TOP_K,
+          config.RAG_SIMILARITY_THRESHOLD,
+          searchIds
+        )
+      : [];
 
     if (similarChunks.length === 0) {
       const noContextMsg = await this.messages.create({

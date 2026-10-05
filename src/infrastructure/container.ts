@@ -68,6 +68,7 @@ export function createContainer(config: Config = getConfig()): AppContainer {
       ),
       answerQuestion: new AnswerQuestionUseCase(
         repositories.chunks,
+        repositories.documents,
         repositories.conversations,
         repositories.messages,
         repositories.citations,
